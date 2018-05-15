@@ -67,28 +67,16 @@ trait Solver extends GameDef {
    */
   def from(initial: Stream[(Block, List[Move])],
            explored: Set[Block]): Stream[(Block, List[Move])] = {
-      val ret = initial.toList.flatMap{ case(block, moves) =>
+    if(!explored.contains(Block(goal, goal))){
+      val ret = initial.flatMap{ case(block, moves) =>
         val neighbourStream = neighborsWithHistory(block, moves)
         newNeighborsOnly(neighbourStream, explored)
-      }.toStream
-      if(!ret.isEmpty)
-        from(initial ++ ret, ret.map(_._1).toSet ++ explored)
-      else
-        initial
+      }
+      from(ret, ret.map(_._1).toSet ++ explored)
+    } else {
+      initial
+    }
   }
-
-//  def fromTillFirst(initial: Stream[(Block, List[Move])],
-//           explored: Set[Block]): Stream[(Block, List[Move])] = {
-//    if(!explored.contains(Block(goal, goal))){
-//      val ret = initial.flatMap{ case(block, moves) =>
-//        val neighbourStream = neighborsWithHistory(block, moves)
-//        newNeighborsOnly(neighbourStream, explored)
-//      }
-//      from(ret, ret.map(_._1).toSet ++ explored)
-//    } else {
-//      initial
-//    }
-//  }
 
   /**
    * The stream of all paths that begin at the starting block.
@@ -102,7 +90,7 @@ trait Solver extends GameDef {
    */
   lazy val pathsToGoal: Stream[(Block, List[Move])] = {
     val allPaths = from(pathsFromStart, Set(startBlock))
-    val allTargetPaths = allPaths.toList.filter{case(b, _) => b == Block(goal, goal)}
+    val allTargetPaths = allPaths.filter{case(b, _) => b == Block(goal, goal)}
     allTargetPaths.toStream
   }
 
@@ -114,5 +102,5 @@ trait Solver extends GameDef {
    * the first move that the player should perform from the starting
    * position.
    */
-  lazy val solution: List[Move] = pathsToGoal.head._2
+  lazy val solution: List[Move] = pathsToGoal.take(1).head._2
 }
