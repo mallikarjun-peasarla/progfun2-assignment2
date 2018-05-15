@@ -68,11 +68,11 @@ trait Solver extends GameDef {
   def from(initial: Stream[(Block, List[Move])],
            explored: Set[Block]): Stream[(Block, List[Move])] = {
     if(!explored.contains(Block(goal, goal))){
-      val ret = initial.flatMap{ case(block, moves) =>
+      val newNeighbourStream = initial.flatMap{ case(block, moves) =>
         val neighbourStream = neighborsWithHistory(block, moves)
         newNeighborsOnly(neighbourStream, explored)
       }
-      from(ret, ret.map(_._1).toSet ++ explored)
+      from(newNeighbourStream, newNeighbourStream.map(_._1).toSet ++ explored)
     } else {
       initial
     }
