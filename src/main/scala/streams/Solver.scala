@@ -29,19 +29,7 @@ trait Solver extends GameDef {
    * that are inside the terrain.
    */
   def neighborsWithHistory(b: Block, history: List[Move]): Stream[(Block, List[Move])] = {
-    history.map{move =>
-      val (revB,revM) = rollOpposite(b, move)
-      (revB, revM :: history)
-    }.toStream
-  }
-
-  private def rollOpposite(b:Block, move:Move): (Block, Move) = {
-    move match {
-      case Left => (b.right, Right)
-      case Right => (b.left, Left)
-      case Up => (b.down, Down)
-      case Down => (b.up, Up)
-    }
+    b.legalNeighbors.map{case (b, m) => (b, history :+ m)}.toStream
   }
 
   /**
@@ -51,7 +39,7 @@ trait Solver extends GameDef {
    */
   def newNeighborsOnly(neighbors: Stream[(Block, List[Move])],
                        explored: Set[Block]): Stream[(Block, List[Move])] = {
-    neighbors.filter{case (block, _) => explored.contains(block)}
+    neighbors.filter{case (block, _) => !explored.contains(block)}
   }
 
   /**
@@ -79,21 +67,43 @@ trait Solver extends GameDef {
    */
   def from(initial: Stream[(Block, List[Move])],
            explored: Set[Block]): Stream[(Block, List[Move])] = {
-    newNeighborsOnly(initial, explored).sortBy(_._2.length)
+      val ret = initial.toList.flatMap{ case(block, moves) =>
+        val neighbourStream = neighborsWithHistory(block, moves)
+        newNeighborsOnly(neighbourStream, explored)
+      }.toStream
+      if(!ret.isEmpty)
+        from(initial ++ ret, ret.map(_._1).toSet ++ explored)
+      else
+        initial
   }
+
+//  def fromTillFirst(initial: Stream[(Block, List[Move])],
+//           explored: Set[Block]): Stream[(Block, List[Move])] = {
+//    if(!explored.contains(Block(goal, goal))){
+//      val ret = initial.flatMap{ case(block, moves) =>
+//        val neighbourStream = neighborsWithHistory(block, moves)
+//        newNeighborsOnly(neighbourStream, explored)
+//      }
+//      from(ret, ret.map(_._1).toSet ++ explored)
+//    } else {
+//      initial
+//    }
+//  }
 
   /**
    * The stream of all paths that begin at the starting block.
    */
-  lazy val pathsFromStart: Stream[(Block, List[Move])] = startBlock.legalNeighbors.map{case (b,m) => (b,List(m))}.toStream
+  lazy val pathsFromStart: Stream[(Block, List[Move])] =
+    startBlock.legalNeighbors.map{case (b,m) => (b,List(m))}.toStream
 
   /**
    * Returns a stream of all possible pairs of the goal block along
    * with the history how it was reached.
    */
   lazy val pathsToGoal: Stream[(Block, List[Move])] = {
-    val goalBlock = Block(goal, goal)
-    from(goalBlock.legalNeighbors.map{case (b,m) => (b,List(m))}.toStream, Set())
+    val allPaths = from(pathsFromStart, Set(startBlock))
+    val allTargetPaths = allPaths.toList.filter{case(b, _) => b == Block(goal, goal)}
+    allTargetPaths.toStream
   }
 
   /**
