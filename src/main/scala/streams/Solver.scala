@@ -67,15 +67,11 @@ trait Solver extends GameDef {
    */
   def from(initial: Stream[(Block, List[Move])],
            explored: Set[Block]): Stream[(Block, List[Move])] = {
-    if(!explored.contains(Block(goal, goal))){
       val newNeighbourStream = initial.flatMap{ case(block, moves) =>
         val neighbourStream = neighborsWithHistory(block, moves)
         newNeighborsOnly(neighbourStream, explored)
       }
-      from(newNeighbourStream, newNeighbourStream.map(_._1).toSet ++ explored)
-    } else {
-      initial
-    }
+    initial #::: from(newNeighbourStream, newNeighbourStream.map(_._1).toSet ++ explored) //This solved the stackoverflow or InfiniteLevel solution with lazy evaluation of stream without explicitly checking for first result.
   }
 
   /**
