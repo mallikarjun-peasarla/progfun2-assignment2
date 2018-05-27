@@ -140,7 +140,7 @@ trait GameDef {
      * which are inside the terrain.
      */
     def legalNeighbors: List[(Block, Move)] = {
-      neighbors.filter{case (block: Block, move) => onTerrain(block)}
+      neighbors.filter{case (block: Block, move) => block.isLegal}
     }
 
     /**
@@ -152,7 +152,5 @@ trait GameDef {
      * Returns `true` if the block is entirely inside the terrain.
      */
     def isLegal: Boolean = terrain(b1) && terrain(b2)
-
-    private def onTerrain(block: Block): Boolean = terrain(block.b1) && terrain(block.b2)
   }
 }
